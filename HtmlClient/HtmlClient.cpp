@@ -1,6 +1,6 @@
 ﻿#include "HtmlClient.h"
 
-std::string HtmlClient::do_request(std::string_view urlStr)
+std::wstring HtmlClient::do_request(std::string_view urlStr)
 {
     // Парсинг строки ссылки
     auto parseResult = boost::urls::parse_uri(urlStr);
@@ -32,14 +32,14 @@ std::string HtmlClient::do_request(std::string_view urlStr)
     //ss << request;
     //std::wcout << L"Request: " << utf82wideUtf(ss.str()) << "\n";
 
-    std::string str = (port == 443) ?
+    std::wstring str = (port == 443) ?
         httpsRequest(sequenceEp, request) :
         httpRequest(sequenceEp, request);
 
     return std::move(str);
 }
 
-std::string HtmlClient::httpsRequest(const tcp::resolver::results_type& sequenceEp,
+std::wstring HtmlClient::httpsRequest(const tcp::resolver::results_type& sequenceEp,
     const http::request<http::string_body>& req)
 {
     ssl::context ctx(ssl::context::sslv23);
@@ -79,7 +79,7 @@ std::string HtmlClient::httpsRequest(const tcp::resolver::results_type& sequence
     return checkResult(res);
 }
 
-std::string HtmlClient::httpRequest(const tcp::resolver::results_type& sequenceEp,
+std::wstring HtmlClient::httpRequest(const tcp::resolver::results_type& sequenceEp,
     const http::request<http::string_body>& req)
 {
     beast::tcp_stream stream{ ioc };
@@ -112,26 +112,32 @@ std::string HtmlClient::httpRequest(const tcp::resolver::results_type& sequenceE
     return checkResult(res);
 }
 
-std::string HtmlClient::checkResult(http::response<http::dynamic_body> res)
+std::wstring HtmlClient::checkResult(http::response<http::dynamic_body> res)
 {
-    std::stringstream streamStr;
+    std::wstring ws;
     switch (res.base().result_int())
     {
         case 301:
             //std::wcout << L"Перенаправлено.....\n";
-            streamStr << do_request(res.base()["Location"]);
+            ws = do_request(res.base()["Location"]);
             break;
         case 200:
-            streamStr << res;
+        {
+            std::stringstream ss;
+            ss << res;
+            std::string s(ss.str());
+            ws = { s.begin(), s.end() };
             break;
+        }
         default:
             //std::wcout << L"Unexpected HTTP status " << res.result_int() << "\n";
             break;
     }
-    return streamStr.str();
+
+    return std::move(ws);
 }
 
-std::string HtmlClient::getRequest(std::string_view urlStr)
+std::wstring HtmlClient::getRequest(std::string_view urlStr)
 {
 	return do_request(urlStr);
 }

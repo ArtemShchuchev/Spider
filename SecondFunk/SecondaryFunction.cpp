@@ -72,3 +72,9 @@ std::string wideUtf2ansi(const std::wstring &wstr)
 	WideCharToMultiByte(CP_ACP, 0, &wstr[0], (int)wstr.size(), &strTo[0], size_needed, NULL, NULL);
 	return strTo;
 }
+
+std::wostream& operator<<(std::wostream& out, const std::string str)
+{
+	out << utf82wideUtf(str);
+	return out;
+}

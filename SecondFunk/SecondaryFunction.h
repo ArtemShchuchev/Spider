@@ -83,3 +83,6 @@ std::wstring utf82wideUtf(const std::string& str);
 
 // Convert an wide Unicode string to ANSI string
 std::string wideUtf2ansi(const std::wstring& wstr);
+
+// перегружаю оператор << для wcout (чтобы выводить std::string)
+std::wostream& operator<< (std::wostream& out, const std::string str);

@@ -6,7 +6,7 @@
 #include "SecondaryFunction.h"
 
 using WordMap = std::unordered_map<std::wstring, int>;
-using LinkVect = std::vector<std::wstring>;
+using LinkList = std::list<std::string>;
 
 class WordSearch
 {
@@ -22,5 +22,5 @@ private:
 
 public:
 	WordSearch() = default;
-	std::pair<WordMap, LinkVect> getWordMap(std::wstring str);
+	std::pair<WordMap, LinkList> getWordMap(std::wstring& str);
 };

@@ -6,6 +6,7 @@
 #include "wordSearch.h"
 #include "SecondaryFunction.h"
 
+
 int main(int argc, char** argv)
 {
     setRuLocale();
@@ -14,24 +15,24 @@ int main(int argc, char** argv)
     try
     {
 	    ConfigFile config("../config.ini");
-        std::string firstLink = config.getConfig<std::string>("Spider", "startWeb");
+        LinkList links;
+        links.push_back(config.getConfig<std::string>("Spider", "startWeb"));
+        //std::string firstLink = config.getConfig<std::string>("Spider", "startWeb");
         int recurse = config.getConfig<int>("Spider", "recurse");
 
-        //std::wcout << utf82wideUtf(firstLink) << " - " << recurse << '\n';
         HtmlClient client;
-        std::string htmlAnswer = client.getRequest(firstLink);
-	
+        std::wstring htmlAnswer = client.getRequest(links.front());
+        links.pop_front();
+
 	    WordSearch words;
-        auto [wordAmount, links](words.getWordMap(utf82wideUtf(htmlAnswer)));
-
-
+        auto [wordAmount, l](words.getWordMap(htmlAnswer));
+        links.splice(links.end(), l);
 
         uint32_t listNum(0);
         for (const auto& link : links) {
             std::wcout << ++listNum << ") " << link << '\n';
         }
         std::wcout << '\n';
-
         listNum = 0;
         for (const auto& [word, amount] : wordAmount)
         {

@@ -9,8 +9,9 @@ WordSearch::token_reg{ LR"(<[^>]*>)" },
 WordSearch::punct_reg{ LR"([[:punct:]])" },
 WordSearch::number_reg{ LR"( [0-9][^ ]*)" };
 
-std::pair<WordMap, LinkVect> WordSearch::getWordMap(std::wstring str)
+std::pair<WordMap, LinkList> WordSearch::getWordMap(std::wstring& s)
 {
+    std::wstring str(std::move(s));
     // Убрал пробельные символы [ \f\n\r\t\v]
     str = std::regex_replace(str, space_reg, L" ");
     // Нашел title
@@ -22,10 +23,26 @@ std::pair<WordMap, LinkVect> WordSearch::getWordMap(std::wstring str)
     if (it != std::wsregex_token_iterator{}) str = *it;
     else str.clear();
     // Ищу ссылки
-    LinkVect links{
+    /*
+    LinkList links{
         std::wsregex_token_iterator{str.begin(), str.end(), url_reg, 1},
         std::wsregex_token_iterator{}
     };
+    */
+    LinkList links;
+    auto it_start(std::wsregex_token_iterator{ str.begin(), str.end(), url_reg, 1 });
+    auto it_end(std::wsregex_token_iterator{});
+
+    for (auto it(it_start); it != it_end; ++it)
+    {
+        std::wstring ws(*it);
+        //std::string s{ ws.begin(), ws.end() };
+        std::string s(wideUtf2utf8(ws));
+        links.push_back(s);
+    }
+    //std::list<std::wstring> l{ it_start, it_end };
+
+
     // добавил к body, title
     str += title;
     // Убрал токены
