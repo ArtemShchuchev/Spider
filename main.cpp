@@ -34,8 +34,7 @@ int main(int argc, char** argv)
         }
         std::wcout << '\n';
         listNum = 0;
-        for (const auto& [word, amount] : wordAmount)
-        {
+        for (const auto& [word, amount] : wordAmount) {
             std::wcout << ++listNum << ") " << word << " - " << amount << '\n';
         }
     }
