@@ -5,12 +5,14 @@
 #include <memory>
 #include <vector>
 #include "SecondaryFunction.h"
+#include "../Types.h"
 
 struct IdWordAm {
 	int id;
 	std::string word;
 	int amount;
 };
+using idWordAm_vec = std::vector<IdWordAm>;
 
 class Clientdb
 {
@@ -22,13 +24,13 @@ private:
 	void deleteLink(const int id);
 	void deleteNotUseWord();
 	int createLink(const std::string& link);
-	void getIdWord(std::vector<IdWordAm>& idWordAmount);
+	void getIdWord(idWordAm_vec& idWordAm);
 
 public:
 	Clientdb();
 	std::wstring dbname();
 	int addLink(const std::string& link);
 	int getIdLink(const std::string& link);
-	void addWords(std::vector<IdWordAm>& idWordAmount);
-	void addLinkWords(const int id, const std::vector<IdWordAm>& idWordAmount);
+	idWordAm_vec addWords(const WordMap wordAmount);
+	void addLinkWords(const int id, const idWordAm_vec& idWordAm);
 };

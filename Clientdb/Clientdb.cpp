@@ -11,7 +11,7 @@ Clientdb::Clientdb()
 	
 	if (!is_open()) throw std::runtime_error("Не удалось подключиться к БД");
 	
-	connect->set_client_encoding("WIN1251");
+	//connect->set_client_encoding("WIN1251");
 	createTable();
 }
 
@@ -57,7 +57,7 @@ int Clientdb::createLink(const std::string& link)
 	return row[0].as<int>();
 }
 
-void Clientdb::getIdWord(std::vector<IdWordAm>& idWordAmount)
+void Clientdb::getIdWord(idWordAm_vec& idWordAm)
 {
 	const std::string SQL_REQUEST{
 		"select id from words "
@@ -66,7 +66,7 @@ void Clientdb::getIdWord(std::vector<IdWordAm>& idWordAmount)
 	connect->prepare("get_id", SQL_REQUEST);
 
 	pqxx::work tx{ *connect };
-	for (auto& struc : idWordAmount)
+	for (auto& struc : idWordAm)
 	{
 		if (struc.id) continue;
 		auto row = tx.exec_prepared("get_id", tx.esc(struc.word));
@@ -109,7 +109,7 @@ int Clientdb::getIdLink(const std::string& link)
 	return id;
 }
 
-void Clientdb::addWords(std::vector<IdWordAm>& idWordAmount)
+idWordAm_vec Clientdb::addWords(const WordMap wordAmount)
 {
 	const std::string SQL_REQUEST{
 		"INSERT into words (word) "
@@ -118,20 +118,27 @@ void Clientdb::addWords(std::vector<IdWordAm>& idWordAmount)
 
 	connect->prepare("insert_words", SQL_REQUEST);
 
+	idWordAm_vec idWordAm(wordAmount.size());
+	auto it = idWordAm.begin();
 	pqxx::work tx{ *connect };
-	for (auto& struc : idWordAmount)
+	for (auto& [w, amount] : wordAmount)
 	{
-		auto row = tx.exec_prepared("insert_words", tx.esc(struc.word));
+		std::string word = wideUtf2utf8(w);
+		auto row = tx.exec_prepared("insert_words", tx.esc(word));
 		auto option = row[0][0].as<std::optional<int>>();
-		struc.id = option.has_value() ? *option : 0;
-		if (struc.id == 0) wordExist = true;
+		int id_word(option.has_value() ? *option : 0);
+		if (id_word == 0) wordExist = true;
+		*it = { id_word, word, amount };
+		++it;
 	}
 	tx.commit();
 
-	if (wordExist) getIdWord(idWordAmount);
+	if (wordExist) getIdWord(idWordAm);
+
+	return idWordAm;
 }
 
-void Clientdb::addLinkWords(const int id, const std::vector<IdWordAm>& idWordAmount)
+void Clientdb::addLinkWords(const int id, const idWordAm_vec& idWordAm)
 {
 	const std::string SQL_REQUEST{
 		"INSERT into link_word (link_id, word_id, amount) "
@@ -140,7 +147,7 @@ void Clientdb::addLinkWords(const int id, const std::vector<IdWordAm>& idWordAmo
 	connect->prepare("insert_link_word", SQL_REQUEST);
 
 	pqxx::work tx{ *connect };
-	for (auto& struc : idWordAmount)
+	for (auto& struc : idWordAm)
 	{
 		tx.exec_prepared("insert_link_word", id, struc.id, struc.amount);
 	}

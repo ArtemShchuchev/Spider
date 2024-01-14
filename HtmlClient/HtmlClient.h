@@ -6,7 +6,7 @@
 #include <boost/asio.hpp>
 #include <boost/regex.hpp>
 #include <boost/asio/ssl.hpp>
-//#include "SecondaryFunction.h"
+#include "SecondaryFunction.h"
 
 namespace beast = boost::beast;     // from <boost/beast.hpp>
 namespace http = beast::http;       // from <boost/beast/http.hpp>
@@ -21,12 +21,12 @@ private:
 	// io_context требуется для всех операций ввода-вывода.
 	net::io_context ioc;
 
-	std::wstring do_request(std::string_view urlStr);
+	std::wstring do_request(std::string urlStr);
 	std::wstring httpsRequest(const tcp::resolver::results_type& sequenceEp, const http::request<http::string_body>& req);
 	std::wstring httpRequest(const tcp::resolver::results_type& sequenceEp, const http::request<http::string_body>& req);
 	std::wstring checkResult(http::response<http::dynamic_body> res);
 
 public:
 	HtmlClient() = default;
-	std::wstring getRequest(std::string_view urlStr);
+	std::wstring getRequest(const std::string& urlStr);
 };

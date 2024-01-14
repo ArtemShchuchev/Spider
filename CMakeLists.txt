@@ -4,7 +4,8 @@ project(Spider VERSION 1.0 LANGUAGES CXX)
 set(OUTPUT_NAME Spider)
 set(MYLIB_PATH ${PROJECT_SOURCE_DIR}/SecondFunk)
 set(LIBPQ_ROOT $ENV{LIBPQXX_ROOT})      # Укажите путь к libpq++
-set(HEADERS ${MYLIB_PATH}/SecondaryFunction.h
+set(HEADERS Types.h
+			${MYLIB_PATH}/SecondaryFunction.h
 			HtmlClient/HtmlClient.h
 			ConfigFile/ConfigFile.h
 			Clientdb/Clientdb.h

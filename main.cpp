@@ -5,7 +5,7 @@
 #include "ConfigFile.h"
 #include "wordSearch.h"
 #include "SecondaryFunction.h"
-
+#include "Types.h"
 
 int main(int argc, char** argv)
 {
@@ -15,34 +15,59 @@ int main(int argc, char** argv)
     try
     {
 	    ConfigFile config("../config.ini");
-        LinkList links;
-        links.push_back(config.getConfig<std::string>("Spider", "startWeb"));
-        //std::string firstLink = config.getConfig<std::string>("Spider", "startWeb");
-        int recurse = config.getConfig<int>("Spider", "recurse");
 
-        HtmlClient client;
-        std::wstring htmlAnswer = client.getRequest(links.front());
-        links.pop_front();
-
-	    WordSearch words;
-        auto [wordAmount, l](words.getWordMap(htmlAnswer));
-        links.splice(links.end(), l);
-
-        uint32_t listNum(0);
-        for (const auto& link : links) {
-            std::wcout << ++listNum << ") " << link << '\n';
+        std::string firstLink(config.getConfig<std::string>("Spider", "startWeb"));
+        if (firstLink.empty()) {
+            throw std::logic_error("Вызов не содержит ссылки!");
         }
-        std::wcout << '\n';
-        listNum = 0;
-        for (const auto& [word, amount] : wordAmount) {
-            std::wcout << ++listNum << ") " << word << " - " << amount << '\n';
+        const int RECURSE(config.getConfig<int>("Spider", "recurse"));
+        LinkList links{ {std::move(firstLink), 0} };
+
+        while (links.empty() == false)
+        {
+            Link url(links.front());
+            links.pop_front();
+            std::wstring page;
+            if (url.recLevel < RECURSE) {
+                std::wcout << L"1. Поиск-чтение страницы...\n";
+                HtmlClient client;
+                page = client.getRequest(url.link_str); // url -> page
+            }
+
+            WordMap wordAmount;
+            if (page.empty() == false) {
+                std::wcout << L"2. Парсер слов и ссылок...\n";
+                WordSearch words;
+                std::pair<WordMap, LinkList> wordLink(words.getWordLink(std::move(page), url.recLevel)); // page, recurse -> word, amount, listLink
+                wordAmount = wordLink.first;
+                links.splice(links.end(), wordLink.second);
+            }
+            /*
+            uint32_t listNum(0);
+            for (const auto& link : links) {
+                std::wcout << ++listNum << ") " << link.link_str << " (" << link.recLevel << ")\n";
+            }
+            std::wcout << "\n url: " << utf82wideUtf(url.link_str) << '\n';
+            listNum = 0;
+            for (const auto& [word, amount] : wordAmount) {
+                std::wcout << ++listNum << ") " << word << " - " << amount << '\n';
+            }
+            */
+
+            if (wordAmount.empty() == false) {
+                std::wcout << L"3. Сохраниние в БД...\n";
+                Clientdb db;
+                int idLink(db.addLink(url.link_str));
+                idWordAm_vec idWordAm(db.addWords(std::move(wordAmount)));
+                db.addLinkWords(idLink, idWordAm);
+            }
         }
     }
     catch (const std::exception& err)
     {
         consoleCol(col::br_red);
         std::wcerr << L"\nИсключение типа: " << typeid(err).name() << '\n';
-        std::wcerr << utf82wideUtf(err.what()) << '\n';
+        std::wcerr << ansi2wideUtf(err.what()) << '\n';
         consoleCol(col::cancel);
         return EXIT_FAILURE;
     }

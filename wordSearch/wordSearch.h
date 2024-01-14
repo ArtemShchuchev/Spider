@@ -4,9 +4,15 @@
 #include <regex>
 #include <boost/locale.hpp> // перед "SecondaryFunction.h"
 #include "SecondaryFunction.h"
+#include "../Types.h"
 
-using WordMap = std::unordered_map<std::wstring, int>;
-using LinkList = std::list<std::string>;
+//using WordMap = std::unordered_map<std::wstring, int>;
+using Link = struct {
+	std::string link_str;
+	unsigned int recLevel;
+};
+using LinkList = std::list<Link>;
+
 
 class WordSearch
 {
@@ -22,5 +28,5 @@ private:
 
 public:
 	WordSearch() = default;
-	std::pair<WordMap, LinkList> getWordMap(std::wstring& str);
+	std::pair<WordMap, LinkList> getWordLink(std::wstring page, unsigned int recLevel);
 };

@@ -9,58 +9,48 @@ WordSearch::token_reg{ LR"(<[^>]*>)" },
 WordSearch::punct_reg{ LR"([[:punct:]])" },
 WordSearch::number_reg{ LR"( [0-9][^ ]*)" };
 
-std::pair<WordMap, LinkList> WordSearch::getWordMap(std::wstring& s)
+std::pair<WordMap, LinkList> WordSearch::getWordLink(std::wstring page, unsigned int recLevel)
 {
-    std::wstring str(std::move(s));
     // Убрал пробельные символы [ \f\n\r\t\v]
-    str = std::regex_replace(str, space_reg, L" ");
+    page = std::regex_replace(page, space_reg, L" ");
     // Нашел title
-    auto it = std::wsregex_token_iterator(str.begin(), str.end(), title_reg, 1);
+    auto it = std::wsregex_token_iterator(page.begin(), page.end(), title_reg, 1);
     std::wstring title;
     if (it != std::wsregex_token_iterator{}) title = *it;
     // Нашел body
-    it = std::wsregex_token_iterator(str.begin(), str.end(), body_reg, 1);
-    if (it != std::wsregex_token_iterator{}) str = *it;
-    else str.clear();
+    it = std::wsregex_token_iterator(page.begin(), page.end(), body_reg, 1);
+    if (it != std::wsregex_token_iterator{}) page = *it;
+    else page.clear();
     // Ищу ссылки
-    /*
-    LinkList links{
-        std::wsregex_token_iterator{str.begin(), str.end(), url_reg, 1},
-        std::wsregex_token_iterator{}
-    };
-    */
     LinkList links;
-    auto it_start(std::wsregex_token_iterator{ str.begin(), str.end(), url_reg, 1 });
+    auto it_start(std::wsregex_token_iterator{ page.begin(), page.end(), url_reg, 1 });
     auto it_end(std::wsregex_token_iterator{});
-
+    ++recLevel; // следующая глубина погружения
     for (auto it(it_start); it != it_end; ++it)
     {
-        std::wstring ws(*it);
-        //std::string s{ ws.begin(), ws.end() };
-        std::string s(wideUtf2utf8(ws));
-        links.push_back(s);
+        std::wstring link_ws(*it);
+        std::string link_str(wideUtf2utf8(link_ws));
+        links.push_back( { link_str, recLevel } );
     }
-    //std::list<std::wstring> l{ it_start, it_end };
-
 
     // добавил к body, title
-    str += title;
+    page += title;
     // Убрал токены
-    str = std::regex_replace(str, token_reg, L"");
+    page = std::regex_replace(page, token_reg, L"");
     // Убрал знаки пунктуации
-    str = std::regex_replace(str, punct_reg, L" ");
+    page = std::regex_replace(page, punct_reg, L" ");
     // Цифры и слова начинающиеся с цифры
-    str = std::regex_replace(str, number_reg, L" ");
+    page = std::regex_replace(page, number_reg, L" ");
     // Строку в нижний регистр
     // Create system default locale
     boost::locale::generator gen;
     std::locale loc = gen("");
     // Make it system global
     std::locale::global(loc);
-    str = boost::locale::to_lower(str);
+    page = boost::locale::to_lower(page);
     // Разделяю на слова от 3х до 32х символов, добавляю в словарь
+    std::wstringstream stream(page);
     WordMap wordmap;
-    std::wstringstream stream(str);
     std::wstring word;
     while (std::getline(stream, word, L' '))
     {
