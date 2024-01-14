@@ -7,7 +7,7 @@ WordSearch::url_reg{ LR"!!(<\s*A\s+[^>]*href\s*=\s*"(http[^"]*)")!!", std::regex
 WordSearch::title_reg{ LR"(< ?title ?>(.+)< ?/ ?title>)" },
 WordSearch::token_reg{ LR"(<[^>]*>)" },
 WordSearch::punct_reg{ LR"([[:punct:]])" },
-WordSearch::number_reg{ LR"( [0-9][^ ]*)" };
+WordSearch::number_reg{ LR"(\w*[0-9]\w*)" };
 
 std::pair<WordMap, LinkList> WordSearch::getWordLink(std::wstring page, unsigned int recLevel)
 {
@@ -36,10 +36,10 @@ std::pair<WordMap, LinkList> WordSearch::getWordLink(std::wstring page, unsigned
     // добавил к body, title
     page += title;
     // Убрал токены
-    page = std::regex_replace(page, token_reg, L"");
+    page = std::regex_replace(page, token_reg, L" ");
     // Убрал знаки пунктуации
     page = std::regex_replace(page, punct_reg, L" ");
-    // Цифры и слова начинающиеся с цифры
+    // Цифры и слова содержащие цифры
     page = std::regex_replace(page, number_reg, L" ");
     // Строку в нижний регистр
     // Create system default locale
