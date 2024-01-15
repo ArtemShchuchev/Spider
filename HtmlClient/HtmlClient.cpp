@@ -162,7 +162,6 @@ std::wstring HtmlClient::checkResult(http::response<http::dynamic_body> res)
     switch (responseCode)
     {
         case 301:
-        case 302:
         {
             std::string url(res.base()["Location"]);
             ////////////////////////////////////////////
