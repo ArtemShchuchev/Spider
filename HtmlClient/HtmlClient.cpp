@@ -18,10 +18,11 @@ std::wstring HtmlClient::do_request(std::string urlStr)
             else parseErr = false;
         } while (parseErr);
         ////////////////////////////////////////////
-        std::wcout << L"URL parse... " << std::endl;
-        std::wcout << L"protocol: " << utf82wideUtf(url.scheme()) << "\n";
-        std::wcout << L"domain:   " << utf82wideUtf(url.host()) << "\n";
-        std::wcout << L"path:     " << utf82wideUtf(url.path()) << "\n";
+        std::wcout << L"----------------\n";
+        //std::wcout << L"URL parse... \n";
+        //std::wcout << L"protocol: " << utf82wideUtf(url.scheme()) << "\n";
+        //std::wcout << L"domain:   " << utf82wideUtf(url.host()) << "\n";
+        //std::wcout << L"path:     " << utf82wideUtf(url.path()) << "\n";
         ////////////////////////////////////////////
 
         // Список конечных точек
@@ -31,8 +32,7 @@ std::wstring HtmlClient::do_request(std::string urlStr)
         tcp::resolver::results_type sequenceEp = resolver.resolve(query);
         int port = sequenceEp->endpoint().port();
         ////////////////////////////////////////////
-        std::wcout << L"port:     " << port << '\n';
-        std::wcout << L"----------------" << "\n";
+        //std::wcout << L"port:     " << port << '\n';
         ////////////////////////////////////////////
 
         // Настройка запроса HTTP GET
@@ -46,7 +46,7 @@ std::wstring HtmlClient::do_request(std::string urlStr)
         ////////////////////////////////////////////
         std::stringstream ss;
         ss << request;
-        std::wcout << L"Request: " << utf82wideUtf(ss.str()) << "\n";
+        std::wcout << L"\nRequest: " << utf82wideUtf(ss.str());
         ////////////////////////////////////////////
         std::wstring str = (port == 443) ?
             httpsRequest(sequenceEp, request) :
@@ -78,20 +78,26 @@ std::wstring HtmlClient::httpsRequest(const tcp::resolver::results_type& sequenc
 
     boost::asio::connect(sslStream.lowest_layer(), sequenceEp);
     ////////////////////////////////////////////
-    std::wcout << L">>> Подключаюсь к " << sslStream.lowest_layer().remote_endpoint() << L" <<<\n";
+    std::wcout << L">>> Подключился к " << sslStream.lowest_layer().remote_endpoint() << L" <<<\n";
+    std::wcout << L">>> Рукопожатие <<<\n";
     ////////////////////////////////////////////
     sslStream.handshake(ssl::stream<tcp::socket>::client);
     sslStream.lowest_layer().set_option(tcp::no_delay(true));
-
+    ///////////////////////////////////////
+    std::wcout << L">>> Отправка... ";
+    ////////////////////////////////////////////
     int bytes_sent = http::write(sslStream, req);
     ////////////////////////////////////////////
-    std::wcout << bytes_sent << L" байт отправлено\n";
+    std::wcout << bytes_sent << L" байт отправлено <<<\n";
     ////////////////////////////////////////////
     beast::flat_buffer buffer;
     http::response<http::dynamic_body> res;
+    ///////////////////////////////////////
+    std::wcout << L">>> Чтение... ";
+    ////////////////////////////////////////////
     auto bytes_received = http::read(sslStream, buffer, res);
     ////////////////////////////////////////////
-    std::wcout << bytes_received << L" байт получено\n";
+    std::wcout << bytes_received << L" байт получено <<<\n";
     ////////////////////////////////////////////
     // Аккуратно закройте сокет
     beast::error_code ec;
@@ -99,7 +105,7 @@ std::wstring HtmlClient::httpsRequest(const tcp::resolver::results_type& sequenc
     sslStream.lowest_layer().shutdown(tcp::socket::shutdown_both, ec);
     sslStream.lowest_layer().close();
     ////////////////////////////////////////////
-    std::wcout << ansi2wideUtf(ec.message()) << std::endl;
+    std::wcout << ansi2wideUtf(ec.message()) << std::endl << std::endl;
     ////////////////////////////////////////////
     // not_connected иногда случается, так что не беспокойтесь об этом
     if (ec && ec != beast::errc::not_connected)
@@ -114,29 +120,33 @@ std::wstring HtmlClient::httpRequest(const tcp::resolver::results_type& sequence
     beast::tcp_stream stream{ ioc };
     // Установите соединение по IP-адресу
     stream.connect(sequenceEp);
-    ////////////////////////////////////////////
-    std::wcout << L">>> Подключаюсь к " << stream.socket().lowest_layer().remote_endpoint() << L" <<<\n";
-    ////////////////////////////////////////////
     // Отправьте HTTP-запрос на удаленный хост
+    ////////////////////////////////////////////
+    std::wcout << L">>> Подключился к " << stream.socket().lowest_layer().remote_endpoint() << L" <<<\n";
+    std::wcout << L">>> Отправка... ";
+    ////////////////////////////////////////////
     int bytes_sent = http::write(stream, req);
     ////////////////////////////////////////////
-    std::wcout << bytes_sent << L" байт отправлено\n";
+    std::wcout << bytes_sent << L" байт отправлено <<<\n";
     ////////////////////////////////////////////
     // Этот буфер используется для чтения и должен быть сохранен
     beast::flat_buffer buffer;
     // Объявите контейнер для хранения ответа
     http::response<http::dynamic_body> res;
     // Получите HTTP-ответ
+    ///////////////////////////////////////
+    std::wcout << L">>> Чтение... ";
+    ////////////////////////////////////////////
     int bytes_received = http::read(stream, buffer, res);
     ////////////////////////////////////////////
-    std::wcout << bytes_received << L" байт получено\n";
+    std::wcout << bytes_received << L" байт получено <<<\n";
     ////////////////////////////////////////////
     // Аккуратно закройте сокет
     beast::error_code ec;
     stream.socket().shutdown(tcp::socket::shutdown_both, ec);
     stream.socket().close();
     ////////////////////////////////////////////
-    std::wcout << ansi2wideUtf(ec.message()) << std::endl;
+    std::wcout << ansi2wideUtf(ec.message()) << std::endl << std::endl;
     ////////////////////////////////////////////
     // not_connected иногда случается, так что не беспокойтесь об этом
     if (ec && ec != beast::errc::not_connected)
@@ -152,10 +162,11 @@ std::wstring HtmlClient::checkResult(http::response<http::dynamic_body> res)
     switch (responseCode)
     {
         case 301:
+        case 302:
         {
             std::string url(res.base()["Location"]);
             ////////////////////////////////////////////
-            std::wcout << L"301: Перенаправлено: " << ansi2wideUtf(url) << "\n";
+            std::wcout << responseCode << L": Перенаправлено: " << ansi2wideUtf(url) << "\n\n";
             ////////////////////////////////////////////
             ws = do_request(url);
             break;
@@ -170,7 +181,7 @@ std::wstring HtmlClient::checkResult(http::response<http::dynamic_body> res)
         }
         default:
             ////////////////////////////////////////////
-            std::wcout << L"Unexpected HTTP status " << responseCode << "\n";
+            std::wcout << L"Unexpected HTTP status " << responseCode << "\n\n";
             ////////////////////////////////////////////
             break;
     }
