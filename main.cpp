@@ -56,7 +56,6 @@ int main(int argc, char** argv)
                 std::wcout << ++listNum << ") " << word << " - " << amount << '\n';
             }
             */
-            /*
             // Сохранение найденных слов/ссылок в БД
             if (wordAmount.empty() == false) {
                 std::wcout << L"3. Сохраниние в БД...\n";
@@ -65,6 +64,7 @@ int main(int argc, char** argv)
                 idWordAm_vec idWordAm(db.addWords(std::move(wordAmount)));
                 db.addLinkWords(idLink, idWordAm);
             }
+            /*
             */
         }
     }
