@@ -75,13 +75,18 @@ std::wstring HtmlClient::httpsRequest(const tcp::resolver::results_type& sequenc
     ssl::stream<tcp::socket> sslStream(ioc, ctx);
     sslStream.set_verify_mode(ssl::context::verify_none);
     //socket.set_verify_callback([](bool, ssl::verify_context&) {return true; });
-
+    ////////////////////////////////////////////
+    std::wcout << L">>> Подключение... ";
+    ////////////////////////////////////////////
     boost::asio::connect(sslStream.lowest_layer(), sequenceEp);
     ////////////////////////////////////////////
-    std::wcout << L">>> Подключился к " << sslStream.lowest_layer().remote_endpoint() << L" <<<\n";
-    std::wcout << L">>> Рукопожатие <<<\n";
+    std::wcout << L"успешно (" << sslStream.lowest_layer().remote_endpoint() << L") <<<\n";
+    std::wcout << L">>> Рукопожатие... ";
     ////////////////////////////////////////////
     sslStream.handshake(ssl::stream<tcp::socket>::client);
+    ////////////////////////////////////////////
+    std::wcout << L"<<<\n";
+    ////////////////////////////////////////////
     sslStream.lowest_layer().set_option(tcp::no_delay(true));
     ///////////////////////////////////////
     std::wcout << L">>> Отправка... ";
