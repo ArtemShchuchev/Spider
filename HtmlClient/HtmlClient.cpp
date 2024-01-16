@@ -127,7 +127,7 @@ std::wstring HtmlClient::httpRequest(const tcp::resolver::results_type& sequence
     ////////////////////////////////////////////
     std::wcout << L">>> Подключение... ";
     ////////////////////////////////////////////
-    stream.connect(sequenceEp);
+    boost::asio::connect(stream.socket(), sequenceEp);
     // Отправьте HTTP-запрос на удаленный хост
     ////////////////////////////////////////////
     std::wcout << L"успешно (" << stream.socket().lowest_layer().remote_endpoint() << L") <<<\n";
