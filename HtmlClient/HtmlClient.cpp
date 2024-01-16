@@ -124,10 +124,13 @@ std::wstring HtmlClient::httpRequest(const tcp::resolver::results_type& sequence
 {
     beast::tcp_stream stream{ ioc };
     // Установите соединение по IP-адресу
+    ////////////////////////////////////////////
+    std::wcout << L">>> Подключение... ";
+    ////////////////////////////////////////////
     stream.connect(sequenceEp);
     // Отправьте HTTP-запрос на удаленный хост
     ////////////////////////////////////////////
-    std::wcout << L">>> Подключился к " << stream.socket().lowest_layer().remote_endpoint() << L" <<<\n";
+    std::wcout << L"успешно (" << stream.socket().lowest_layer().remote_endpoint() << L") <<<\n";
     std::wcout << L">>> Отправка... ";
     ////////////////////////////////////////////
     int bytes_sent = http::write(stream, req);
