@@ -9,20 +9,24 @@ set(HEADERS Types.h
 			HtmlClient/HtmlClient.h
 			ConfigFile/ConfigFile.h
 			Clientdb/Clientdb.h
-			wordSearch/wordSearch.h)
+			wordSearch/wordSearch.h
+			ThreadPool/Thread_pool.h
+			ThreadPool/Safe_queue.hpp)
 set(SOURCES main.cpp
 			${MYLIB_PATH}/SecondaryFunction.cpp
 			HtmlClient/HtmlClient.cpp
 			ConfigFile/ConfigFile.cpp
 			Clientdb/Clientdb.cpp
-			wordSearch/wordSearch.cpp)
+			wordSearch/wordSearch.cpp
+			ThreadPool/Thread_pool.cpp)
 # C/C++: доп. каталоги включаемых файлов (#include)
 include_directories(${MYLIB_PATH}
 					$ENV{BOOST_ROOT}
 					${PROJECT_SOURCE_DIR}/HtmlClient
 					${PROJECT_SOURCE_DIR}/ConfigFile
 					${PROJECT_SOURCE_DIR}/Clientdb
-					${PROJECT_SOURCE_DIR}/wordSearch)
+					${PROJECT_SOURCE_DIR}/wordSearch
+					${PROJECT_SOURCE_DIR}/ThreadPool)
 # Компоновщик: доп. каталоги библиотек
 link_directories($ENV{BOOST_ROOT}/stage/lib)
 
