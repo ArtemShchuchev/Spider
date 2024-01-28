@@ -6,7 +6,6 @@
 #include "SecondaryFunction.h"
 #include "../Types.h"
 
-//using WordMap = std::unordered_map<std::wstring, int>;
 using Link = struct {
 	std::string link_str;
 	unsigned int recLevel;
