@@ -5,7 +5,11 @@
 #include <boost/url.hpp>
 #include <boost/asio.hpp>
 #include <boost/regex.hpp>
-#include <boost/asio/ssl.hpp>
+//#include <boost/asio/ssl.hpp>
+
+#include <boost/beast/ssl.hpp>
+//#include <openssl/ssl.h>
+
 #include "SecondaryFunction.h"
 
 namespace beast = boost::beast;     // from <boost/beast.hpp>

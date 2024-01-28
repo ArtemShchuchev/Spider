@@ -8,6 +8,11 @@
 #include "SecondaryFunction.h"
 #include "Types.h"
 
+static task_t maketaskGetPage(HtmlClient& client, const std::string& urlStr, std::wstring& page) {
+    auto t = [&]() { page = client.getRequest(urlStr); };
+    return t;
+}
+
 int main(int argc, char** argv)
 {
     setRuLocale();
@@ -16,13 +21,16 @@ int main(int argc, char** argv)
     try
     {
 	    ConfigFile config("../config.ini");
-
         std::string firstLink(config.getConfig<std::string>("Spider", "startWeb"));
         if (firstLink.empty()) {
             throw std::logic_error("Вызов не содержит ссылки!");
         }
-        const int RECURSE(config.getConfig<int>("Spider", "recurse"));
-        LinkList links{ {std::move(firstLink), 0} };
+        unsigned int recurse(config.getConfig<unsigned int>("Spider", "recurse"));
+        LinkList links{ {std::move(firstLink), recurse} };
+
+        int numThr(std::thread::hardware_concurrency());
+        //const int numThr(7);
+        //Thread_pool tp(numThr);
 
         while (links.empty() == false)
         {
@@ -30,9 +38,9 @@ int main(int argc, char** argv)
             Link url(links.front());
             links.pop_front();
             std::wstring page;
-            if (url.recLevel < RECURSE) {
-                std::wcout << L"1. Поиск-чтение страницы...\n";
-                std::wcout << L"   url: " << utf82wideUtf(url.link_str) << " (" << url.recLevel << ")\n";
+            if (url.recLevel > 0) {
+                //std::wcout << L"1. Поиск-чтение страницы...\n";
+                //std::wcout << L"   url: " << utf82wideUtf(url.link_str) << " (" << url.recLevel << ")\n";
                 HtmlClient client;
                 page = client.getRequest(url.link_str); // url -> page
             }
@@ -40,7 +48,7 @@ int main(int argc, char** argv)
             // Поиск слов/ссылок на страничке
             WordMap wordAmount;
             if (page.empty() == false) {
-                std::wcout << L"2. Парсер слов и ссылок...\n";
+                //std::wcout << L"2. Парсер слов и ссылок...\n";
                 WordSearch words;
                 std::pair<WordMap, LinkList> wordLink(words.getWordLink(std::move(page), url.recLevel)); // page, recurse -> word, amount, listLink
                 wordAmount = wordLink.first;
@@ -60,7 +68,7 @@ int main(int argc, char** argv)
             /*
             // Сохранение найденных слов/ссылок в БД
             if (wordAmount.empty() == false) {
-                std::wcout << L"3. Сохраниние в БД...\n";
+                //std::wcout << L"3. Сохраниние в БД...\n";
                 Clientdb db;
                 int idLink(db.addLink(url.link_str));
                 idWordAm_vec idWordAm(db.addWords(std::move(wordAmount)));
