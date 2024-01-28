@@ -22,6 +22,7 @@ private:
 	void createTable();
 	bool is_open();
 	void deleteLink(const int id);
+	void delFromLinkWords(const int linkId);
 	void deleteNotUseWord();
 	int createLink(const std::string& link);
 	void getIdWord(idWordAm_vec& idWordAm);

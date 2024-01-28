@@ -32,6 +32,18 @@ void Clientdb::deleteLink(const int id)
 	tx.commit();
 }
 
+void Clientdb::delFromLinkWords(const int linkId)
+{
+	const std::string DEL_START_STR{
+		"delete from link_word "
+		"where link_id = '" };
+	const std::string DEL_END_STR{ "';" };
+
+	pqxx::work tx{ *connect };
+	tx.exec(DEL_START_STR + std::to_string(linkId) + DEL_END_STR);
+	tx.commit();
+}
+
 void Clientdb::deleteNotUseWord()
 {
 	const std::string DEL_STR{
@@ -83,6 +95,7 @@ std::wstring Clientdb::dbname()
 
 int Clientdb::addLink(const std::string& link)
 {
+	/*
 	int id = getIdLink(link);
 	if (id)
 	{
@@ -90,6 +103,11 @@ int Clientdb::addLink(const std::string& link)
 		deleteNotUseWord();
 	}
 	return createLink(link);
+	*/
+	int id = getIdLink(link);
+	if (id == 0) id = createLink(link);
+	else delFromLinkWords(id);
+	return id;
 }
 
 int Clientdb::getIdLink(const std::string& link)
