@@ -54,11 +54,16 @@ std::wstring HtmlClient::do_request(std::string urlStr)
 
         return std::move(str);
     }
+    catch (const boost::detail::with_throw_location<boost::system::system_error>)
+    { /* Ошибка в синтаксисе URL -> игнор. */ }
+    catch (const boost::wrapexcept<boost::system::system_error>)
+    { /* Удаленный сервер, отверг соединение -> игнор. */ }
     catch (const std::exception& err)
     {
         consoleCol(col::br_red);
         std::wcerr << L"\nИсключение типа: " << typeid(err).name() << '\n';
-        std::wcerr << ansi2wideUtf(err.what()) << std::endl;
+        std::wcerr << L"Ссылка: " << urlStr << '\n';
+        std::wcerr << L"Ошибка: " << ansi2wideUtf(err.what()) << std::endl;
         consoleCol(col::cancel);
     }
 
