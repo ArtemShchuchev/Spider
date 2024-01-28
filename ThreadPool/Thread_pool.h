@@ -25,7 +25,7 @@ private:
 	void work(const unsigned idx);
 	// возвращает true если в очереди или хоть в одном работающем потоке есть задачи
 	// принимает время для ожидания зависшего потока в секундах
-	bool isBusy(const std::chrono::seconds& sec);
+	bool isBusy(const std::chrono::seconds& timeout);
 
 public:
 	Thread_pool(const unsigned numThr);
@@ -35,5 +35,5 @@ public:
 	// объект шаблона std::packaged_task
 	void add(const task_t& task);
 	// ждет пока все потоки освободятся
-	void wait(const std::chrono::seconds sec = std::chrono::seconds(2));
+	void wait(const std::chrono::seconds timeout = std::chrono::seconds(2));
 };

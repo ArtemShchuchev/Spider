@@ -40,13 +40,14 @@ void Thread_pool::add(const task_t& task)
 
 // возвращает true если в очереди или
 // хоть в одном работающем потоке есть задачи
-bool Thread_pool::isBusy(const std::chrono::seconds& sec)
+bool Thread_pool::isBusy(const std::chrono::seconds& timeout)
 {
 	bool free_f(false);	// все потоки заняты?
 	for (auto& [mode, start] : status) {
 		if (mode == thread_mode::busy) {
 			auto diff = std::chrono::steady_clock::now() - start;
-			if (diff < sec) return true;	// поток работает
+			// поток работает и его время превысило таймаут
+			if (diff < timeout) return true;
 		}
 		else free_f = true;					// хоть 1 поток свободен
 	}
@@ -55,9 +56,9 @@ bool Thread_pool::isBusy(const std::chrono::seconds& sec)
 }
 
 // ждет пока все потоки освободятся или все потоки timeout
-void Thread_pool::wait(const std::chrono::seconds sec)
+void Thread_pool::wait(const std::chrono::seconds timeout)
 {
-	while (isBusy(sec)) {
+	while (isBusy(timeout)) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	};
 }
