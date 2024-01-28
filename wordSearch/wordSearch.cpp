@@ -25,7 +25,7 @@ std::pair<WordMap, LinkList> WordSearch::getWordLink(std::wstring page, unsigned
     LinkList links;
     auto it_start(std::wsregex_token_iterator{ page.begin(), page.end(), url_reg, 1 });
     auto it_end(std::wsregex_token_iterator{});
-    ++recLevel; // следующая глубина погружения
+    --recLevel; // следующая глубина погружения
     for (auto it(it_start); it != it_end; ++it)
     {
         std::wstring link_ws(*it);
