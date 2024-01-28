@@ -9,7 +9,7 @@
 #include "Types.h"
 
 static void spider(LinkList& links);
-static void spiderTask(const Link& url, Thread_pool& tp);
+static void spiderTask(const Link url, std::mutex& consoleLock, Thread_pool& tp);
 
 int main(int argc, char** argv)
 {
@@ -24,13 +24,18 @@ int main(int argc, char** argv)
             throw std::logic_error("Вызов не содержит ссылки!");
         }
         unsigned int recurse(config.getConfig<unsigned int>("Spider", "recurse"));
-        LinkList links{ {std::move(firstLink), recurse} };
+        //LinkList links{ {std::move(firstLink), recurse} };
 
+        std::mutex consoleLock;
         int numThr(std::thread::hardware_concurrency());
         //const int numThr(7);
-        //Thread_pool tp(numThr);
+        Thread_pool tp(numThr);
 
-        spider(links);
+        //spider(links);
+        Link url{ std::move(firstLink), recurse };
+        spiderTask(url, consoleLock, tp);
+        //tp.add([url, &consoleLock, &tp] {spiderTask(url, consoleLock, tp); });
+        tp.wait(std::chrono::seconds(20));
     }
     catch (const std::exception& err)
     {
@@ -77,7 +82,6 @@ static void spider(LinkList& links)
                 }
                 */
 
-                /*
                 // Сохранение найденных слов/ссылок в БД
                 if (wordAmount.empty() == false) {
                     //std::wcout << L"3. Сохраниние в БД...\n";
@@ -86,18 +90,21 @@ static void spider(LinkList& links)
                     idWordAm_vec idWordAm(db.addWords(std::move(wordAmount)));
                     db.addLinkWords(idLink, idWordAm);
                 }
+                /*
                 */
             }
         }
     }
 }
 
-static void spiderTask(const Link& url, Thread_pool& tp)
+static void spiderTask(const Link url, std::mutex& consoleLock, Thread_pool& tp)
 {
     // Загрузка очередной странички
     if (url.recLevel > 0) {
         //std::wcout << L"1. Поиск-чтение страницы...\n";
-        //std::wcout << L"   url: " << utf82wideUtf(url.link_str) << " (" << url.recLevel << ")\n";
+        consoleLock.lock();
+        std::wcout << L"   url: " << utf82wideUtf(url.link_str) << " (" << url.recLevel << ")\n";
+        consoleLock.unlock();
         HtmlClient client;
         std::wstring page = client.getRequest(url.link_str); // url -> page
 
@@ -108,18 +115,31 @@ static void spiderTask(const Link& url, Thread_pool& tp)
             auto [wordAmount, links](words.getWordLink(std::move(page), url.recLevel)); // page, recurse -> word, amount, listLink
 
             for (const auto& link : links) {
-                tp.add([&link, &tp] {spiderTask(link, tp); });
+                tp.add([link, &consoleLock, &tp] {spiderTask(link, consoleLock, tp); });
             }
 
-            /*
             // Сохранение найденных слов/ссылок в БД
             if (wordAmount.empty() == false) {
                 //std::wcout << L"3. Сохраниние в БД...\n";
-                Clientdb db;
-                int idLink(db.addLink(url.link_str));
-                idWordAm_vec idWordAm(db.addWords(std::move(wordAmount)));
-                db.addLinkWords(idLink, idWordAm);
+                try
+                {
+                    Clientdb db;
+                    int idLink(db.addLink(url.link_str));
+                    idWordAm_vec idWordAm(db.addWords(std::move(wordAmount)));
+                    db.addLinkWords(idLink, idWordAm);
+                }
+                catch (const pqxx::broken_connection& err)
+                {
+                    std::string err_str(err.what());
+                    throw std::runtime_error("Ошибка PostgreSQL: " + err_str);
+                }
+                catch (const std::exception& err)
+                {
+                    std::wstring werr(L"Ошибка PostgreSQL: " + utf82wideUtf(err.what()));
+                    throw std::runtime_error(wideUtf2ansi(werr));
+                }
             }
+            /*
             */
         }
     }
