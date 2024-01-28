@@ -9,7 +9,7 @@
 #include "Types.h"
 
 static void spider(LinkList& links);
-static void spiderTask(const Link url, std::mutex& consoleLock, std::mutex& dblock, Thread_pool& tp);
+static void spiderTask(const Link url, std::mutex& consoleLock, std::mutex& parselock, std::mutex& dblock, Thread_pool& tp);
 
 int main(int argc, char** argv)
 {
@@ -26,16 +26,16 @@ int main(int argc, char** argv)
         unsigned int recurse(config.getConfig<unsigned int>("Spider", "recurse"));
         //LinkList links{ {std::move(firstLink), recurse} };
 
-        std::mutex consoleLock, dblock;
+        std::mutex consoleLock, parselock, dblock;
         int numThr(std::thread::hardware_concurrency() - 1);
         if (numThr <= 0) numThr = 1;	// вдруг ядер меньше 2х
-        else if (numThr > 8) numThr = 8;
+        //else if (numThr > 7) numThr = 7;
         //const int numThr(7);
         Thread_pool tp(numThr);
 
         //spider(links);
         Link url{ std::move(firstLink), recurse };
-        spiderTask(url, consoleLock, dblock, tp);
+        spiderTask(url, consoleLock, parselock, dblock, tp);
         //tp.add([url, &consoleLock, &tp] {spiderTask(url, consoleLock, tp); });
         tp.wait(std::chrono::seconds(30));
     }
@@ -99,7 +99,7 @@ static void spider(LinkList& links)
     }
 }
 
-static void spiderTask(const Link url, std::mutex& consoleLock, std::mutex& dblock, Thread_pool& tp)
+static void spiderTask(const Link url, std::mutex& consoleLock, std::mutex& parselock, std::mutex& dblock, Thread_pool& tp)
 {
     // Загрузка очередной странички
     if (url.recLevel > 0) {
@@ -116,12 +116,13 @@ static void spiderTask(const Link url, std::mutex& consoleLock, std::mutex& dblo
             std::pair<WordMap, LinkList> wordlinks;
             try
             {
+                parselock.lock();
                 WordSearch words;
                 wordlinks = words.getWordLink(std::move(page), url.recLevel); // page, recurse -> word, amount, listLink
                 //auto [wordAmount, links](words.getWordLink(std::move(page), url.recLevel)); // page, recurse -> word, amount, listLink
-
+                parselock.unlock();
                 for (const auto& link : wordlinks.second) {
-                    tp.add([link, &consoleLock, &dblock, &tp] {spiderTask(link, consoleLock, dblock, tp); });
+                    tp.add([link, &consoleLock, &parselock, &dblock, &tp] {spiderTask(link, consoleLock, parselock, dblock, tp); });
                 }
             }
             catch (const std::exception& err)
@@ -138,8 +139,8 @@ static void spiderTask(const Link url, std::mutex& consoleLock, std::mutex& dblo
                 //std::wcout << L"3. Сохраниние в БД...\n";
                 try
                 {
-                    Clientdb db;
                     std::lock_guard<std::mutex> lock(dblock);
+                    Clientdb db;
                     int idLink(db.addLink(url.link_str));
                     idWordAm_vec idWordAm(db.addWords(std::move(wordlinks.first)));
                     db.addLinkWords(idLink, idWordAm);
