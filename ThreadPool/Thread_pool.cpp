@@ -62,10 +62,16 @@ bool Thread_pool::isBusy()
 	// если очередь не пуста при хоть 1ом свободном потоке -> true
 	// если все потоки висят -> false
 	// если очередь пуста, а потоки висят или свободны -> false
-	//if (hangs_f) std::wcout << L"Все потоки висят!\n";
 	bool queueempty = squeue.empty();
-	//if (queueempty) std::wcout << L"Очередь пуста, потоки не работают!\n";
-	//else std::wcout << L"Очередь занята, потоки не работают!\n";
+	if (hangs_f) {
+		std::wcout << L"Все потоки висят!\n";
+		//if (!queueempty) {
+		//	squeue.clear();
+		//	return true;
+		//}
+	}
+	if (queueempty) std::wcout << L"Очередь пуста, потоки не работают!\n";
+	else std::wcout << L"Очередь занята, потоки не работают!\n";
 	return (queueempty || hangs_f) ? false : true;
 }
 
