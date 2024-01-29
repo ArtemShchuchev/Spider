@@ -34,7 +34,7 @@ std::pair<WordMap, LinkList> WordSearch::getWordLink(std::wstring page, unsigned
     }
 
     // добавил к body, title
-    page += title;
+    page += std::move(title);
     // Убрал токены
     page = std::regex_replace(page, token_reg, L" ");
     // Убрал знаки пунктуации
@@ -49,7 +49,7 @@ std::pair<WordMap, LinkList> WordSearch::getWordLink(std::wstring page, unsigned
     std::locale::global(loc);
     page = boost::locale::to_lower(page);
     // Разделяю на слова от 3х до 32х символов, добавляю в словарь
-    std::wstringstream stream(page);
+    std::wstringstream stream(std::move(page));
     WordMap wordmap;
     std::wstring word;
     while (std::getline(stream, word, L' '))
