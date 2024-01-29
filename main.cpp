@@ -27,17 +27,15 @@ int main(int argc, char** argv)
         //LinkList links{ {std::move(firstLink), recurse} };
 
         std::mutex consoleLock, parselock, dblock;
-        int numThr(std::thread::hardware_concurrency() - 1);
-        if (numThr <= 0) numThr = 1;	// вдруг ядер меньше 2х
-        //else if (numThr > 7) numThr = 7;
-        //const int numThr(7);
+        int numThr(std::thread::hardware_concurrency());
         Thread_pool tp(numThr);
 
         //spider(links);
         Link url{ std::move(firstLink), recurse };
         spiderTask(url, consoleLock, parselock, dblock, tp);
-        //tp.add([url, &consoleLock, &tp] {spiderTask(url, consoleLock, tp); });
-        tp.wait(std::chrono::seconds(30));
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        tp.wait(std::chrono::seconds(40));
     }
     catch (const std::exception& err)
     {
@@ -103,7 +101,6 @@ static void spiderTask(const Link url, std::mutex& consoleLock, std::mutex& pars
 {
     // Загрузка очередной странички
     if (url.recLevel > 0) {
-        //std::wcout << L"1. Поиск-чтение страницы...\n";
         consoleLock.lock();
         std::wcout << L"   url: " << utf82wideUtf(url.link_str) << " (" << url.recLevel << ")\n";
         consoleLock.unlock();
@@ -112,21 +109,22 @@ static void spiderTask(const Link url, std::mutex& consoleLock, std::mutex& pars
 
         // Поиск слов/ссылок на страничке
         if (page.empty() == false) {
-            //std::wcout << L"2. Парсер слов и ссылок...\n";
             std::pair<WordMap, LinkList> wordlinks;
             try
             {
-                parselock.lock();
-                WordSearch words;
-                wordlinks = words.getWordLink(std::move(page), url.recLevel); // page, recurse -> word, amount, listLink
-                //auto [wordAmount, links](words.getWordLink(std::move(page), url.recLevel)); // page, recurse -> word, amount, listLink
-                parselock.unlock();
+                {
+                    std::lock_guard<std::mutex> lock(parselock);
+                    WordSearch words;
+                    wordlinks = words.getWordLink(std::move(page), url.recLevel); // page, recurse -> word, amount, listLink
+                }
+
                 for (const auto& link : wordlinks.second) {
                     tp.add([link, &consoleLock, &parselock, &dblock, &tp] {spiderTask(link, consoleLock, parselock, dblock, tp); });
                 }
             }
             catch (const std::exception& err)
             {
+                std::lock_guard<std::mutex> lock(consoleLock);
                 consoleCol(col::br_red);
                 std::wcerr << L"\nИсключение типа: " << typeid(err).name() << '\n';
                 std::wcerr << L"Ссылка: " << url.link_str << '\n';
@@ -136,7 +134,6 @@ static void spiderTask(const Link url, std::mutex& consoleLock, std::mutex& pars
 
             // Сохранение найденных слов/ссылок в БД
             if (wordlinks.first.empty() == false) {
-                //std::wcout << L"3. Сохраниние в БД...\n";
                 try
                 {
                     std::lock_guard<std::mutex> lock(dblock);
@@ -156,8 +153,6 @@ static void spiderTask(const Link url, std::mutex& consoleLock, std::mutex& pars
                     throw std::runtime_error(wideUtf2ansi(werr));
                 }
             }
-            /*
-            */
         }
     }
 }
