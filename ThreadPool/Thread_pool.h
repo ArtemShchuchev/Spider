@@ -19,13 +19,13 @@ private:
 	std::vector<std::thread> pool;	// пул потоков
 	std::vector<Status> status;		// состояние потоков 
 	Safe_queue<task_t> squeue;		// безопасная очередь задач
+	std::chrono::seconds _timeout;
 
 	// выбирает из очереди очередную задачу и выполняет ее
 	// данный метод передается конструктору потоков для исполнения
 	void work(const unsigned idx);
 	// возвращает true если в очереди или хоть в одном работающем потоке есть задачи
-	// принимает время для ожидания зависшего потока в секундах
-	bool isBusy(const std::chrono::seconds& timeout);
+	bool isBusy();
 
 public:
 	Thread_pool(const unsigned numThr);
@@ -34,6 +34,8 @@ public:
 	// объект шаблона std::function или 
 	// объект шаблона std::packaged_task
 	void add(const task_t& task);
+	// время ожидания,определяющее зависший поток
+	void setTimeout(const std::chrono::seconds timeout);
 	// ждет пока все потоки освободятся
-	void wait(const std::chrono::seconds timeout = std::chrono::seconds(2));
+	void wait();
 };
