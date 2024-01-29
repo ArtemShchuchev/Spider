@@ -5,11 +5,7 @@
 #include <boost/url.hpp>
 #include <boost/asio.hpp>
 #include <boost/regex.hpp>
-//#include <boost/asio/ssl.hpp>
-
-#include <boost/beast/ssl.hpp>
-//#include <openssl/ssl.h>
-
+#include <boost/asio/ssl.hpp>
 #include "SecondaryFunction.h"
 
 namespace beast = boost::beast;     // from <boost/beast.hpp>
@@ -31,6 +27,5 @@ private:
 	std::wstring checkResult(http::response<http::dynamic_body> res);
 
 public:
-	HtmlClient() = default;
 	std::wstring getRequest(const std::string& urlStr);
 };

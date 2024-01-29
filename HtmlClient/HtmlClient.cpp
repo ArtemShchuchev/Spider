@@ -77,28 +77,22 @@ std::wstring HtmlClient::httpsRequest(const tcp::resolver::results_type& sequenc
     ctx.set_default_verify_paths();
     ctx.set_options(ssl::context::default_workarounds | ssl::context::verify_none);
 
-    //ssl::stream<tcp::socket> sslStream(ioc, ctx);
-    beast::ssl_stream<beast::tcp_stream> sslStream(ioc, ctx);
+    ssl::stream<tcp::socket> sslStream(ioc, ctx);
     sslStream.set_verify_mode(ssl::context::verify_none);
-    //socket.set_verify_callback([](bool, ssl::verify_context&) {return true; });
     sslStream.set_verify_callback([](bool, ssl::verify_context&) {return true; });
     ////////////////////////////////////////////
     //std::wcout << L">>> Подключение... ";
     ////////////////////////////////////////////
-    //boost::asio::connect(sslStream.lowest_layer(), sequenceEp);
-    beast::get_lowest_layer(sslStream).connect(sequenceEp);
-    beast::get_lowest_layer(sslStream).expires_after(std::chrono::seconds(10));
+    boost::asio::connect(sslStream.lowest_layer(), sequenceEp);
     ////////////////////////////////////////////
     //std::wcout << L"успешно (" << sslStream.lowest_layer().remote_endpoint() << L") <<<\n";
-    //std::wcout << L"успешно (" << beast::get_lowest_layer(sslStream).socket().remote_endpoint() << L") <<<\n";
     //std::wcout << L">>> Рукопожатие... ";
     ////////////////////////////////////////////
     sslStream.handshake(ssl::stream<tcp::socket>::client);
     ////////////////////////////////////////////
     //std::wcout << L"<<<\n";
     ////////////////////////////////////////////
-    //sslStream.lowest_layer().set_option(tcp::no_delay(true));
-    beast::get_lowest_layer(sslStream).socket().set_option(tcp::no_delay(true));
+    sslStream.lowest_layer().set_option(tcp::no_delay(true));
     ///////////////////////////////////////
     //std::wcout << L">>> Отправка... ";
     ////////////////////////////////////////////
@@ -120,10 +114,8 @@ std::wstring HtmlClient::httpsRequest(const tcp::resolver::results_type& sequenc
     sslStream.shutdown(ec);
     if (ec == ssl::error::stream_truncated)
         ec = {};
-    //sslStream.lowest_layer().shutdown(tcp::socket::shutdown_both, ec);
-    //sslStream.lowest_layer().close();
-    beast::get_lowest_layer(sslStream).socket().shutdown(tcp::socket::shutdown_both, ec);
-    beast::get_lowest_layer(sslStream).socket().close();
+    sslStream.lowest_layer().shutdown(tcp::socket::shutdown_both, ec);
+    sslStream.lowest_layer().close();
     ////////////////////////////////////////////
     //std::wcout << ansi2wideUtf(ec.message()) << std::endl << std::endl;
     ////////////////////////////////////////////
