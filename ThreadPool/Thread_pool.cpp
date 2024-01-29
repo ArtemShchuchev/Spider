@@ -43,22 +43,30 @@ void Thread_pool::add(const task_t& task)
 bool Thread_pool::isBusy(const std::chrono::seconds& timeout)
 {
 	bool free_f(false);	// все потоки заняты?
+	int count(0);
 	for (auto& [mode, start] : status) {
+		++count;
 		if (mode == thread_mode::busy) {
 			auto diff = std::chrono::steady_clock::now() - start;
 			// поток работает и его время превысило таймаут
-			if (diff < timeout) return true;
+			if (diff < timeout) {
+				//std::wcout << L"Поток занят!\n";
+				return true;
+			}
+			else std::wcout << count << L" - поток висит!\n";
 		}
 		else free_f = true;					// хоть 1 поток свободен
 	}
 	// если все потоки висят или очередь пуста -> false
-	return (!squeue.empty() && free_f);
+	bool flag = squeue.empty();
+	std::wcout << std::boolalpha << L"Очередь пуста: " << flag << '\n';
+	return (!flag && free_f);
 }
 
 // ждет пока все потоки освободятся или все потоки timeout
 void Thread_pool::wait(const std::chrono::seconds timeout)
 {
 	while (isBusy(timeout)) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	};
 }
