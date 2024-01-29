@@ -8,6 +8,7 @@
 #include "SecondaryFunction.h"
 #include "Types.h"
 
+int countglob(0);
 struct Lock {
     std::mutex console;
     std::mutex parse;
@@ -15,9 +16,9 @@ struct Lock {
 };
 static void spiderTask(const Link url, Lock& lock, Thread_pool& threadPool);
 
-task_t maketask(Thread_pool& tp, int i)
+static task_t maketask(Thread_pool& tp, int i)
 {
-    auto t = [&tp, &i] { while (i) { tp.add(maketask(tp, i)); --i; } };
+    auto t = [&] { while (i>0) { std::this_thread::sleep_for(std::chrono::milliseconds(10)); tp.add(maketask(tp, --i)); } };
     return t;
 }
 
@@ -41,11 +42,9 @@ int main(int argc, char** argv)
         
         Thread_pool threadPool(numThr);
         threadPool.setTimeout(std::chrono::seconds(5));
-        //spiderTask(url, lock, threadPool);
+        spiderTask(url, lock, threadPool);
         
-        for (int i(0); i < numThr; ++i) {
-            threadPool.add(maketask(threadPool, i));
-        }
+        //threadPool.add(maketask(threadPool, 5));
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     catch (const std::exception& err)
@@ -66,10 +65,24 @@ static void spiderTask(const Link url, Lock& lock, Thread_pool& threadPool)
     // Загрузка очередной странички
     if (url.recLevel > 0) {
         lock.console.lock();
-        std::wcout << L"   url: " << utf82wideUtf(url.link_str) << " (" << url.recLevel << ")\n";
+        ++countglob;
+        int count = countglob;
+        //std::wcout << count << L"   url: " << utf82wideUtf(url.link_str) << " (" << url.recLevel << ")\n";
+        std::wcout << count << "\n";
         lock.console.unlock();
-        HtmlClient client;
-        std::wstring page = client.getRequest(url.link_str); // url -> page
+        std::wstring page;
+        {
+            HtmlClient client;
+            page = client.getRequest(url.link_str); // url -> page
+        }
+
+
+        lock.console.lock();
+        //std::wcout << count << L" Получена страничка---------\n";
+        std::wcout << "\t" << count << "\n";
+        lock.console.unlock();
+
+
 
         // Поиск слов/ссылок на страничке
         if (page.empty() == false) {
@@ -82,8 +95,16 @@ static void spiderTask(const Link url, Lock& lock, Thread_pool& threadPool)
                     wordlinks = words.getWordLink(std::move(page), url.recLevel); // page, recurse -> word, amount, listLink
                 }
 
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                lock.console.lock();
+                std::wcout << "\t\t" << count << "\n";
+                lock.console.unlock();
+
+
+
                 for (const auto& link : wordlinks.second) {
-                    threadPool.add([link, &lock, &threadPool] {spiderTask(link, lock, threadPool); });
+                    threadPool.add([link, &lock, &threadPool] { spiderTask(link, lock, threadPool); });
                 }
             }
             catch (const std::exception& err)
@@ -95,6 +116,12 @@ static void spiderTask(const Link url, Lock& lock, Thread_pool& threadPool)
                 std::wcerr << L"Ошибка: " << ansi2wideUtf(err.what()) << std::endl;
                 consoleCol(col::cancel);
             }
+
+
+            lock.console.lock();
+            std::wcout << "\t\t\t" << count << "\n";
+            lock.console.unlock();
+
 
             // Сохранение найденных слов/ссылок в БД
             if (wordlinks.first.empty() == false) {
@@ -117,6 +144,12 @@ static void spiderTask(const Link url, Lock& lock, Thread_pool& threadPool)
                     throw std::runtime_error(wideUtf2ansi(werr));
                 }
             }
+
+
+
+            lock.console.lock();
+            std::wcout << "\t\t\t\t" << count << "\n";
+            lock.console.unlock();
         }
     }
 }
