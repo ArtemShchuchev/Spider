@@ -26,6 +26,5 @@ private:
 		number_reg;
 
 public:
-	WordSearch() = default;
 	std::pair<WordMap, LinkList> getWordLink(std::wstring page, unsigned int recLevel);
 };
