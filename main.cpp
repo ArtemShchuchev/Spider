@@ -8,23 +8,12 @@
 #include "SecondaryFunction.h"
 #include "Types.h"
 
-int countglob(0);
 struct Lock {
     std::mutex console;
     std::mutex parse;
     std::mutex db;
 };
-
-Lock* lock;
-Thread_pool* threadPool;
-
-static void spiderTask(const Link url, Lock* lock, Thread_pool* threadPool);
-
-static task_t maketask(Thread_pool& tp, int i)
-{
-    auto t = [&] { while (i>0) { std::this_thread::sleep_for(std::chrono::milliseconds(10)); tp.add(maketask(tp, --i)); } };
-    return t;
-}
+static void spiderTask(const Link url, std::shared_ptr<Lock> lock, Thread_pool& threadPool);
 
 int main(int argc, char** argv)
 {
@@ -36,24 +25,18 @@ int main(int argc, char** argv)
 	    ConfigFile config("../config.ini");
         std::string firstLink(config.getConfig<std::string>("Spider", "startWeb"));
         if (firstLink.empty()) {
-            throw std::logic_error("Вызов не содержит ссылки!");
+            throw std::logic_error("Файл конфигурации не содержит ссылки!");
         }
         unsigned int recurse(config.getConfig<unsigned int>("Spider", "recurse"));
         Link url{ std::move(firstLink), recurse };
 
-        //Lock lock;
+        auto lock = std::make_shared<Lock>();
+
         int numThr(std::thread::hardware_concurrency());
-        
-        //Thread_pool threadPool(numThr);
-        lock = new Lock();
-        threadPool = new Thread_pool(numThr);
-        threadPool->setTimeout(std::chrono::seconds(5));
+        Thread_pool threadPool(numThr);
+        // таймаут каждого потока, после чего он считается "зависшим"
+        threadPool.setTimeout(std::chrono::seconds(60));
         spiderTask(url, lock, threadPool);
-        //threadPool.add([url, &lock, &threadPool] { spiderTask(url, lock, threadPool); });
-        
-        //threadPool.add(maketask(threadPool, 5));
-        //std::this_thread::sleep_for(std::chrono::seconds(10));
-        threadPool->wait();
     }
     catch (const std::exception& err)
     {
@@ -68,29 +51,19 @@ int main(int argc, char** argv)
 }
 
 
-static void spiderTask(const Link url, Lock* lock, Thread_pool* threadPool)
+static void spiderTask(const Link url, std::shared_ptr<Lock> lock, Thread_pool& threadPool)
 {
     // Загрузка очередной странички
     if (url.recLevel > 0) {
         lock->console.lock();
-        ++countglob;
-        int count = countglob;
-        //std::wcout << count << L"   url: " << utf82wideUtf(url.link_str) << " (" << url.recLevel << ")\n";
-        std::wcout << count << "\n";
+        std::wcout << L"   url: " << utf82wideUtf(url.link_str) << " (" << url.recLevel << ")\n";
         lock->console.unlock();
+
         std::wstring page;
         {
             HtmlClient client;
             page = client.getRequest(url.link_str); // url -> page
         }
-
-
-        lock->console.lock();
-        //std::wcout << count << L" Получена страничка---------\n";
-        std::wcout << "\t" << count << "\n";
-        lock->console.unlock();
-
-
 
         // Поиск слов/ссылок на страничке
         if (page.empty() == false) {
@@ -102,17 +75,9 @@ static void spiderTask(const Link url, Lock* lock, Thread_pool* threadPool)
                     WordSearch words;
                     wordlinks = words.getWordLink(std::move(page), url.recLevel); // page, recurse -> word, amount, listLink
                 }
-
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
-                lock->console.lock();
-                std::wcout << "\t\t" << count << "\n";
-                lock->console.unlock();
-
-
-
+                // добавление задач в очередь
                 for (const auto& link : wordlinks.second) {
-                    threadPool->add([link, lock, threadPool] { spiderTask(link, lock, threadPool); });
+                    threadPool.add([link, lock, &threadPool] { spiderTask(link, lock, threadPool); });
                 }
             }
             catch (const std::exception& err)
@@ -124,11 +89,6 @@ static void spiderTask(const Link url, Lock* lock, Thread_pool* threadPool)
                 std::wcerr << L"Ошибка: " << ansi2wideUtf(err.what()) << std::endl;
                 consoleCol(col::cancel);
             }
-
-            lock->console.lock();
-            std::wcout << "\t\t\t" << count << "\n";
-            lock->console.unlock();
-            
 
             // Сохранение найденных слов/ссылок в БД
             if (wordlinks.first.empty() == false) {
@@ -151,11 +111,6 @@ static void spiderTask(const Link url, Lock* lock, Thread_pool* threadPool)
                     throw std::runtime_error(wideUtf2ansi(werr));
                 }
             }
-
-
-
-            std::lock_guard<std::mutex> lg(lock->console);
-            std::wcout << "\t\t\t\t" << count << "\n";
         }
     }
 }
