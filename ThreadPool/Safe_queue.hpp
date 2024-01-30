@@ -42,12 +42,4 @@ public:
 		std::lock_guard<std::mutex> lock(taskLock);
 		return taskList.empty();
 	}
-
-	void clear()
-	{
-		//std::lock_guard<std::mutex> lock(taskLock);
-		while (!empty()) {
-			pop();
-		}
-	}
 };
