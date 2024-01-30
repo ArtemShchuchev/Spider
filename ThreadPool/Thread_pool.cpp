@@ -47,7 +47,7 @@ void Thread_pool::setTimeout(const std::chrono::seconds timeout)
 // хоть в одном работающем потоке есть задачи
 bool Thread_pool::isBusy()
 {
-	bool hangs_f(true);			// все потоки висят
+	int hangsCount(0);	// счетчик зависших потоков
 	for (auto& [mode, start] : status) {
 		if (mode == thread_mode::busy) {
 			auto diff = std::chrono::steady_clock::now() - start;
@@ -56,22 +56,37 @@ bool Thread_pool::isBusy()
 				// не превысило таймаут -> true
 				return true;
 			}
+			// поток висит
+			++hangsCount;
 		}
-		else hangs_f = false;	// хоть 1 поток свободен
+		// хоть 1 поток свободен
 	}
 	// если очередь не пуста при хоть 1ом свободном потоке -> true
 	// если все потоки висят -> false
 	// если очередь пуста, а потоки висят или свободны -> false
-	bool queueempty = squeue.empty();
+	const bool queueempty(squeue.empty());
+	const bool hangs_f(hangsCount == status.size());
+	/*
+	*/
+	const std::wstring queueStat_str = queueempty ? L"Очередь пуста" : L"Очередь занята";
 	if (hangs_f) {
-		std::wcout << L"Все потоки висят!\n";
-		//if (!queueempty) {
-		//	squeue.clear();
-		//	return true;
-		//}
+		std::wcout << L"Все потоки висят! (" + queueStat_str + L")\n";
 	}
-	if (queueempty) std::wcout << L"Очередь пуста, потоки не работают!\n";
-	else std::wcout << L"Очередь занята, потоки не работают!\n";
+	else {
+		if (queueempty) {
+			if (hangsCount) {
+				std::wcout << L"Висит потоков: " << hangsCount
+					<< L", остальные простаивают ("
+					+ queueStat_str + L")\n";
+			}
+			else std::wcout << L"Работа в потоках закончена!\n";
+		}
+		else {
+			// Поток простаивает при том, что есть работа в очереди -> true
+			std::wcout << queueStat_str + L" при свободном потоке, подождем...\n";
+		}
+	}
+
 	return (queueempty || hangs_f) ? false : true;
 }
 
