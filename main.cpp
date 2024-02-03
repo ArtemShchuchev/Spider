@@ -1,5 +1,4 @@
 ﻿#include <iostream>
-#include <pqxx/pqxx>
 #include "HtmlClient.h"
 #include "Clientdb.h"
 #include "ConfigFile.h"
