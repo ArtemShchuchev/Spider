@@ -1,17 +1,15 @@
 ﻿#include "Clientdb.h"
 
-Clientdb::Clientdb()
+Clientdb::Clientdb(const ConnectData& data)
 {
 	connect = std::make_unique<pqxx::connection>(
-		"host=localhost "
-		"port=5432 "
-		"dbname=htmlIndex "
-		"user=postgres "
-		"password=postgres");
+		"host=" + data.host +
+		" port=" + std::to_string(data.port) +
+		" dbname=" + data.dbname +
+		" user=" + data.username +
+		" password=" + data.password);
 	
 	if (!is_open()) throw std::runtime_error("Не удалось подключиться к БД");
-	
-	//connect->set_client_encoding("WIN1251");
 	createTable();
 }
 

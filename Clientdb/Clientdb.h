@@ -7,6 +7,13 @@
 #include "SecondaryFunction.h"
 #include "../Types.h"
 
+struct ConnectData {
+	std::string host;
+	unsigned port;
+	std::string dbname;
+	std::string username;
+	std::string password;
+};
 struct IdWordAm {
 	int id;
 	std::string word;
@@ -28,7 +35,7 @@ private:
 	void getIdWord(idWordAm_vec& idWordAm);
 
 public:
-	Clientdb();
+	Clientdb(const ConnectData& data);
 	std::wstring dbname();
 	int addLink(const std::string& link);
 	int getIdLink(const std::string& link);

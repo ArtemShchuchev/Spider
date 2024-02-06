@@ -12,7 +12,8 @@ struct Lock {
     std::mutex parse;
     std::mutex db;
 };
-static void spiderTask(const Link url, std::shared_ptr<Lock> lock, Thread_pool& threadPool);
+static void spiderTask(const Link url, std::shared_ptr<Lock> lock,
+    Thread_pool& threadPool, ConnectData& conData);
 
 int main(int argc, char** argv)
 {
@@ -29,13 +30,20 @@ int main(int argc, char** argv)
         unsigned int recurse(config.getConfig<unsigned int>("Spider", "recurse"));
         Link url{ std::move(firstLink), recurse };
 
+        ConnectData connectDb;
+        connectDb.dbname = config.getConfig<std::string>("BdConnect", "dbname");
+        connectDb.host = config.getConfig<std::string>("BdConnect", "host");
+        connectDb.password = config.getConfig<std::string>("BdConnect", "password");
+        connectDb.username = config.getConfig<std::string>("BdConnect", "user");
+        connectDb.port = config.getConfig<unsigned>("BdConnect", "port");
+
         auto lock = std::make_shared<Lock>();
 
         int numThr(std::thread::hardware_concurrency());
         Thread_pool threadPool(numThr);
         // таймаут каждого потока, после чего он считается "зависшим"
         threadPool.setTimeout(std::chrono::seconds(60));
-        spiderTask(url, lock, threadPool);
+        spiderTask(url, lock, threadPool, connectDb);
     }
     catch (const std::exception& err)
     {
@@ -50,7 +58,8 @@ int main(int argc, char** argv)
 }
 
 
-static void spiderTask(const Link url, std::shared_ptr<Lock> lock, Thread_pool& threadPool)
+static void spiderTask(const Link url, std::shared_ptr<Lock> lock,
+    Thread_pool& threadPool, ConnectData& conData)
 {
     // Загрузка очередной странички
     if (url.recLevel > 0) {
@@ -76,7 +85,8 @@ static void spiderTask(const Link url, std::shared_ptr<Lock> lock, Thread_pool& 
                 }
                 // добавление задач в очередь
                 for (const auto& link : wordlinks.second) {
-                    threadPool.add([link, lock, &threadPool] { spiderTask(link, lock, threadPool); });
+                    threadPool.add([link, lock, &threadPool, &conData]
+                        { spiderTask(link, lock, threadPool, conData); });
                 }
             }
             catch (const std::exception& err)
@@ -94,7 +104,7 @@ static void spiderTask(const Link url, std::shared_ptr<Lock> lock, Thread_pool& 
                 try
                 {
                     std::lock_guard<std::mutex> lg(lock->db);
-                    Clientdb db;
+                    Clientdb db(conData);
                     int idLink(db.addLink(url.link_str));
                     idWordAm_vec idWordAm(db.addWords(std::move(wordlinks.first)));
                     db.addLinkWords(idLink, idWordAm);
