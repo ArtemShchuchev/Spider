@@ -49,7 +49,7 @@ int main(int argc, char** argv)
     {
         consoleCol(col::br_red);
         std::wcerr << L"\nИсключение типа: " << typeid(err).name() << '\n';
-        std::wcerr << ansi2wideUtf(err.what()) << '\n';
+        std::wcerr << utf82wideUtf(err.what()) << '\n';
         consoleCol(col::cancel);
         return EXIT_FAILURE;
     }
@@ -95,7 +95,7 @@ static void spiderTask(const Link url, std::shared_ptr<Lock> lock,
                 consoleCol(col::br_red);
                 std::wcerr << L"\nИсключение типа: " << typeid(err).name() << '\n';
                 std::wcerr << L"Ссылка: " << url.link_str << '\n';
-                std::wcerr << L"Ошибка: " << ansi2wideUtf(err.what()) << std::endl;
+                std::wcerr << L"Ошибка: " << utf82wideUtf(err.what()) << std::endl;
                 consoleCol(col::cancel);
             }
 
@@ -111,13 +111,13 @@ static void spiderTask(const Link url, std::shared_ptr<Lock> lock,
                 }
                 catch (const pqxx::broken_connection& err)
                 {
-                    std::string err_str(err.what());
-                    throw std::runtime_error("Ошибка PostgreSQL: " + err_str);
+                    std::wstring err_str(L"Ошибка подключения к PostgreSQL: " + ansi2wideUtf(err.what()));
+                    throw std::runtime_error(wideUtf2utf8(err_str));
                 }
                 catch (const std::exception& err)
                 {
-                    std::wstring werr(L"Ошибка PostgreSQL: " + utf82wideUtf(err.what()));
-                    throw std::runtime_error(wideUtf2ansi(werr));
+                    std::string err_str("Ошибка PostgreSQL: ");
+                    throw std::runtime_error(err_str + err.what());
                 }
             }
         }

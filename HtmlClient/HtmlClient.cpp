@@ -63,7 +63,7 @@ std::wstring HtmlClient::do_request(std::string urlStr)
         consoleCol(col::br_red);
         std::wcerr << L"\nИсключение типа: " << typeid(err).name() << '\n';
         std::wcerr << L"Ссылка: " << urlStr << '\n';
-        std::wcerr << L"Ошибка: " << ansi2wideUtf(err.what()) << std::endl;
+        std::wcerr << L"Ошибка: " << utf82wideUtf(err.what()) << std::endl;
         consoleCol(col::cancel);
     }
 
