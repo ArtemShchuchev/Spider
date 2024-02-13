@@ -66,26 +66,6 @@ bool Thread_pool::isBusy()
 	// если очередь пуста, а потоки висят или свободны -> false
 	const bool queueempty(squeue.empty());
 	const bool hangs_f(hangsCount == status.size());
-	/*
-	*/
-	const std::wstring queueStat_str = queueempty ? L"Очередь пуста" : L"Очередь занята";
-	if (hangs_f) {
-		std::wcout << L"Все потоки висят! (" + queueStat_str + L")\n";
-	}
-	else {
-		if (queueempty) {
-			if (hangsCount) {
-				std::wcout << L"Висит потоков: " << hangsCount
-					<< L", остальные простаивают ("
-					+ queueStat_str + L")\n";
-			}
-			else std::wcout << L"Работа в потоках закончена!\n";
-		}
-		else {
-			// Поток простаивает при том, что есть работа в очереди -> true
-			std::wcout << queueStat_str + L" при свободном потоке, подождем...\n";
-		}
-	}
 
 	return (queueempty || hangs_f) ? false : true;
 }
