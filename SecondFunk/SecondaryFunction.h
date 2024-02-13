@@ -30,6 +30,7 @@ namespace col
 }
 
 #elif _WIN32		// Windows
+#include <winsock2.h>	// для корректной компиляции с Boost
 #include <Windows.h>
 #include <io.h>
 #include <fcntl.h>
